@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  postgres_pagila:
+    image: postgres:13
+    container_name: postgres_pagila
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secretpassword
+      POSTGRES_DB: pagila
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./source_scripts:/opt/source_scripts 
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 5
+  mysql_sakila:
+    image: mysql:8.0
+    container_name: mysql_sakila
+    environment:
+      MYSQL_ROOT_PASSWORD: secretpassword
+      MYSQL_DATABASE: sakila
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./source_scripts:/opt/source_scripts
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      interval: 5s
+      retries: 5
+  airflow:
+    image: apache/airflow:2.9.1
+    container_name: airflow_standalone
+    environment:
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False 
+      - _AIRFLOW_WWW_USER_CREATE=true      
+      - _AIRFLOW_WWW_USER_USERNAME=admin   
+      - _AIRFLOW_WWW_USER_PASSWORD=admin   
+    ports:
+      - "8080:8080" 
+    volumes:
+      - ./dags:/opt/airflow/dags 
+      - ./source_scripts:/opt/source_scripts 
+    command: standalone 
+    depends_on:
+      - postgres_pagila
+      - mysql_sakila    
